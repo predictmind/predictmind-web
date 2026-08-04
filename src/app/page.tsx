@@ -8,6 +8,12 @@ export default function Home() {
         AI-Powered Market Intelligence &amp; Strategy Research
       </p>
       <p className="text-sm text-slate-500">Learn. Predict. Validate.</p>
+      <a
+        href="/backtesting"
+        className="mt-4 rounded-lg bg-primary px-6 py-3 font-medium text-white transition hover:opacity-90"
+      >
+        Open Strategy Testing →
+      </a>
     </main>
   );
 }
