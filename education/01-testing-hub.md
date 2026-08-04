@@ -136,12 +136,23 @@ as a **React Hook**, and hooks can't be called inside event handlers. The fix wa
 rename it `selectAccount`. **Lesson:** in React, don't start a normal function's name
 with `use` unless it really is a hook.
 
+## Strategy bots — hands-free live testing (added later)
+
+Paper mode started **manual** (you place each order). We then added **strategy bots**
+so a chosen strategy trades **automatically** on the live market. In the Paper tab,
+`BotManager.tsx` lets you create a bot (pick a strategy + coin + timeframe + how much
+of the account to use per trade), then list, pause/resume, delete, or **Run now**.
+
+The bot itself lives in the **paper service** (a small server-side loop that ticks
+every minute); the website just manages it. Each tick, the bot asks the **backtest
+service** for the strategy's current signal and buys/sells on the account — so
+backtest and live use the *same* strategy brain. See the paper service's education
+(`09-strategy-bots.md`) for how the loop and sizing work.
+
 ## What's next (honest limits)
 
-- Right now Paper mode is **manual** (you place the orders). Making a chosen strategy
-  place orders **automatically** on live prices needs a small always-running back-end
-  worker — a good next step.
 - The charts are simple line charts. Full candlestick charts with zoom would need a
   charting library.
+- Bots are spot-only (buy then sell); they sit in cash when the signal isn't BUY.
 
 Next: the [glossary](02-glossary.md).

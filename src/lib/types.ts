@@ -168,3 +168,32 @@ export interface PaperTrade {
   price: string | number;
   createdAt?: string;
 }
+
+/** An automated strategy bot (paper service `paper_strategy_bots`). */
+export interface StrategyBot {
+  id: string;
+  accountId: string;
+  name: string;
+  symbol: string;
+  timeframe: string;
+  strategyName: string;
+  allocationPct: string | number;
+  enabled: boolean;
+  lastSignal?: string | null;
+  lastAction?: string | null;
+  lastError?: string | null;
+  lastRunAt?: string | null;
+  createdAt?: string;
+}
+
+/** Request body for creating a bot. */
+export interface CreateBotRequest {
+  accountId: string;
+  name: string;
+  symbol: string;
+  timeframe: string;
+  strategyName: string;
+  params?: Record<string, number>;
+  rules?: RuleSpec;
+  allocationPct?: number;
+}

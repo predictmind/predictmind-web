@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 import type { Coin, PaperOrder, PaperPortfolio, PaperTrade } from "@/lib/types";
 import { money, num, pct, signColor } from "@/lib/format";
+import BotManager from "./BotManager";
 
 const ACC_KEY = "pm.paperAccountId";
 const inputCls =
@@ -394,6 +395,8 @@ export default function PaperPanel({ connected }: { connected: boolean }) {
           </div>
         )}
       </div>
+
+      <BotManager accountId={accountId} coins={coins} onAction={refresh} />
 
       <p className="text-xs text-slate-500">
         {trades.length} executed trade{trades.length === 1 ? "" : "s"} on this account. Paper trading

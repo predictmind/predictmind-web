@@ -14,11 +14,13 @@ import type {
   BacktestResult,
   Candle,
   Coin,
+  CreateBotRequest,
   PaperAccount,
   PaperOrder,
   PaperPortfolio,
   PaperTrade,
   RunBacktestRequest,
+  StrategyBot,
   Trade,
 } from "./types";
 
@@ -173,4 +175,42 @@ export function listPaperTrades(accountId: string): Promise<PaperTrade[]> {
 
 export function cancelPaperOrder(orderId: string): Promise<PaperOrder> {
   return request<PaperOrder>(`/api/v1/paper/orders/${orderId}/cancel`, { method: "POST" });
+}
+
+// ---- Strategy bots (automated live trading) ----
+
+export function createBot(body: CreateBotRequest): Promise<StrategyBot> {
+  return request<StrategyBot>("/api/v1/paper/bots", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function listBots(accountId: string): Promise<StrategyBot[]> {
+  const q = new URLSearchParams({ accountId });
+  return request<StrategyBot[]>(`/api/v1/paper/bots?${q.toString()}`);
+}
+
+export function setBotEnabled(id: string, enabled: boolean): Promise<StrategyBot> {
+  return request<StrategyBot>(`/api/v1/paper/bots/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export function deleteBot(id: string): Promise<{ deleted: boolean }> {
+  return request<{ deleted: boolean }>(`/api/v1/paper/bots/${id}`, { method: "DELETE" });
+}
+
+export interface BotTickResult {
+  botId: string;
+  symbol: string;
+  signal: string;
+  action: string;
+  price?: number;
+  error?: string;
+}
+
+export function tickBot(id: string): Promise<BotTickResult> {
+  return request<BotTickResult>(`/api/v1/paper/bots/${id}/tick`, { method: "POST" });
 }
