@@ -13,6 +13,7 @@ import type { OhlcvBar } from "@/lib/indicators";
 import { dateLabel, num, toNum } from "@/lib/format";
 import { TIMEFRAMES, historyPresets } from "@/lib/strategies";
 import AlertsPanel from "./AlertsPanel";
+import MultiChart, { type Pane } from "./MultiChart";
 import PriceChartPro, {
   type CrosshairInfo,
   type Drawing,
@@ -20,6 +21,13 @@ import PriceChartPro, {
   type Overlays,
   type PriceLinePro,
 } from "./PriceChartPro";
+
+const DEFAULT_PANES: Pane[] = [
+  { symbol: "BTC", timeframe: "1d" },
+  { symbol: "ETH", timeframe: "1d" },
+  { symbol: "SOL", timeframe: "1d" },
+  { symbol: "BNB", timeframe: "1d" },
+];
 
 const DEFAULT_OVERLAYS: Overlays = {
   sma20: false,
@@ -79,6 +87,40 @@ export default function ChartsPanel({
   const [replayIdx, setReplayIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speedMs, setSpeedMs] = useState(600);
+  // Multi-chart layout (Single / 2 / 4), persisted as a layout template.
+  const [layout, setLayout] = useState<1 | 2 | 4>(1);
+  const [panes, setPanes] = useState<Pane[]>(DEFAULT_PANES);
+
+  useEffect(() => {
+    try {
+      const l = Number(localStorage.getItem("pm.chartLayout"));
+      if (l === 2 || l === 4) setLayout(l);
+      const raw = localStorage.getItem("pm.chartPanes");
+      if (raw) {
+        const saved = JSON.parse(raw) as Pane[];
+        if (Array.isArray(saved) && saved.length >= 4) setPanes(saved);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const changeLayout = (l: 1 | 2 | 4) => {
+    setLayout(l);
+    try {
+      localStorage.setItem("pm.chartLayout", String(l));
+    } catch {
+      /* ignore */
+    }
+  };
+  const changePanes = (next: Pane[]) => {
+    setPanes(next);
+    try {
+      localStorage.setItem("pm.chartPanes", JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (connected) listCoins().then(setCoins).catch(() => setCoins([]));
@@ -244,7 +286,20 @@ export default function ChartsPanel({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-slate-500">Layout:</span>
+        {([1, 2, 4] as const).map((L) => (
+          <button key={L} type="button" onClick={() => changeLayout(L)} className={chip(layout === L)}>
+            {L === 1 ? "Single" : `${L} charts`}
+          </button>
+        ))}
+      </div>
+
+      {layout !== 1 ? (
+        <MultiChart count={layout} panes={panes} coins={coins} onPanesChange={changePanes} />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
       {/* watchlist */}
       <aside className="rounded-xl border border-border bg-surface p-3">
         <div className="mb-2 flex gap-1">
@@ -439,6 +494,8 @@ export default function ChartsPanel({
           />
         </div>
       </section>
+        </div>
+      )}
     </div>
   );
 }

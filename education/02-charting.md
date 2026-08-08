@@ -159,6 +159,26 @@ Two design choices worth noting:
   re-deriving sentiment or funding in the browser — one source of truth, and the
   heavy lifting stays server-side.
 
+## Multi-chart layouts (added later)
+
+A **Layout** selector (Single / 2 / 4) sits above the chart. Pick 2 or 4 and the
+single-chart view is replaced by a grid of compact charts (`MultiChart.tsx`), each an
+independent **cell** with its own symbol + timeframe that fetches its own candles.
+This lets you watch several markets at once, like a TradingView multi-chart layout.
+
+Design notes:
+
+- **Cells are lean on purpose** — candles + volume + SMA50/200, no drawings/alerts/
+  replay. Those power tools live in the Single view; the grid is for *monitoring*.
+- **Reuse:** each cell just renders the same `PriceChartPro`, so all the charting
+  work (candles, overlays, cleanup, responsiveness) is shared — the cell only adds a
+  symbol dropdown and timeframe buttons.
+- **Saved layout template:** the chosen layout and each pane's symbol/timeframe are
+  stored in `localStorage` (`pm.chartLayout`, `pm.chartPanes`), so your grid is
+  exactly as you left it next time.
+- Every `PriceChartPro` cleans up its chart on unmount, so switching between Single
+  and multi layouts doesn't leak charts.
+
 ## Honest scope (Phase 1)
 
 This is the first slice of a bigger "TradingView-parity" plan. It covers charting,
