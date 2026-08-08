@@ -57,6 +57,7 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [assetFilter, setAssetFilter] = useState<"all" | "CRYPTO" | "STOCK">("all");
 
   useEffect(() => {
     if (connected) listCoins().then(setCoins).catch(() => setCoins([]));
@@ -86,9 +87,14 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
     return first > 0 ? ((lastC - first) / first) * 100 : 0;
   }, [bars]);
 
-  const filteredCoins = coins.filter(
-    (c) => !filter || c.symbol.toLowerCase().includes(filter.toLowerCase()) || c.name.toLowerCase().includes(filter.toLowerCase()),
-  );
+  const filteredCoins = coins.filter((c) => {
+    const matchesText =
+      !filter ||
+      c.symbol.toLowerCase().includes(filter.toLowerCase()) ||
+      c.name.toLowerCase().includes(filter.toLowerCase());
+    const matchesAsset = assetFilter === "all" || (c.assetClass ?? "CRYPTO") === assetFilter;
+    return matchesText && matchesAsset;
+  });
 
   const toggle = (key: keyof Overlays) => setOverlays((o) => ({ ...o, [key]: !o[key] }));
 
@@ -105,9 +111,23 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
     <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
       {/* watchlist */}
       <aside className="rounded-xl border border-border bg-surface p-3">
+        <div className="mb-2 flex gap-1">
+          {(["all", "CRYPTO", "STOCK"] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => setAssetFilter(a)}
+              className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition ${
+                assetFilter === a ? "bg-primary text-white" : "bg-elevated text-slate-300 hover:bg-border"
+              }`}
+            >
+              {a === "all" ? "All" : a === "CRYPTO" ? "Crypto" : "Stocks"}
+            </button>
+          ))}
+        </div>
         <input
           className="mb-2 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
-          placeholder="Search coins…"
+          placeholder="Search…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />

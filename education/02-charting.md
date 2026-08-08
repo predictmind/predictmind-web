@@ -55,7 +55,8 @@ little later.
 
 This lays out the tools around the chart:
 
-- a **watchlist** on the left (searchable list of coins; click to switch),
+- a **watchlist** on the left (searchable, with an **All / Crypto / Stocks** filter —
+  because the platform now serves stocks too, priced via Yahoo Finance),
 - a **timeframe switcher** (15m / 1h / 4h / 1d / 1w) and a **history** selector,
 - **indicator toggle chips** (SMA20/50/200, EMA20, Bollinger, VWAP, Volume, RSI),
 - an **OHLC + % change readout** that follows your crosshair.

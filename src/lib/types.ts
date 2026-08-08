@@ -11,6 +11,8 @@ export interface Coin {
   symbol: string;
   name: string;
   status?: string;
+  /** "CRYPTO" or "STOCK" — set by the market service. */
+  assetClass?: string;
 }
 
 /** One OHLCV candle (`GET /api/v1/market/candles`). Prices arrive as strings. */
