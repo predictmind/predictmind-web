@@ -16,6 +16,7 @@ import {
   createChart,
   LineStyle,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type LineData,
   type SeriesMarker,
@@ -46,12 +47,19 @@ export interface CrosshairInfo {
   close: number;
 }
 
+export interface PriceLinePro {
+  price: number;
+  color: string;
+  title: string;
+}
+
 interface Props {
   bars: OhlcvBar[];
   overlays: Overlays;
   showVolume: boolean;
   showRsi: boolean;
   markers?: ChartMarkerPro[];
+  priceLines?: PriceLinePro[];
   height?: number;
   onCrosshair?: (info: CrosshairInfo | null) => void;
 }
@@ -76,6 +84,7 @@ export default function PriceChartPro({
   showVolume,
   showRsi,
   markers = [],
+  priceLines = [],
   height = 460,
   onCrosshair,
 }: Props) {
@@ -88,6 +97,7 @@ export default function PriceChartPro({
   const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlaySeries = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const rsiSeries = useRef<ISeriesApi<"Line"> | null>(null);
+  const priceLineRefs = useRef<IPriceLine[]>([]);
 
   // ---- create charts once ----
   useEffect(() => {
@@ -252,6 +262,23 @@ export default function PriceChartPro({
       rsiSeries.current.setData(toLine(bars, rsi(closes, 14)));
     }
   }, [bars, overlays, showVolume, markers]);
+
+  // ---- horizontal price lines (e.g. alert levels) ----
+  useEffect(() => {
+    const candle = candleSeries.current;
+    if (!candle) return;
+    for (const line of priceLineRefs.current) candle.removePriceLine(line);
+    priceLineRefs.current = priceLines.map((pl) =>
+      candle.createPriceLine({
+        price: pl.price,
+        color: pl.color,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: pl.title,
+      }),
+    );
+  }, [priceLines]);
 
   return (
     <div>

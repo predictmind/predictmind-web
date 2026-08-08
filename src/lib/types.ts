@@ -188,6 +188,26 @@ export interface StrategyBot {
   createdAt?: string;
 }
 
+/** A server-side price alert. */
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  condition: "above" | "below";
+  price: string | number;
+  status: "ACTIVE" | "TRIGGERED" | string;
+  note?: string | null;
+  triggeredAt?: string | null;
+  triggeredPrice?: string | number | null;
+  createdAt?: string;
+}
+
+export interface CreateAlertRequest {
+  symbol: string;
+  condition: "above" | "below";
+  price: number;
+  note?: string;
+}
+
 /** Request body for creating a bot. */
 export interface CreateBotRequest {
   accountId: string;

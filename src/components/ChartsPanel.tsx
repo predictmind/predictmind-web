@@ -7,12 +7,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getCandles, listCoins } from "@/lib/api";
-import type { Coin } from "@/lib/types";
+import { createAlert, deleteAlert, getCandles, listAlerts, listCoins, resetAlert } from "@/lib/api";
+import type { Coin, PriceAlert } from "@/lib/types";
 import type { OhlcvBar } from "@/lib/indicators";
-import { num } from "@/lib/format";
+import { num, toNum } from "@/lib/format";
 import { TIMEFRAMES, historyPresets } from "@/lib/strategies";
-import PriceChartPro, { type CrosshairInfo, type Overlays } from "./PriceChartPro";
+import AlertsPanel from "./AlertsPanel";
+import PriceChartPro, { type CrosshairInfo, type Overlays, type PriceLinePro } from "./PriceChartPro";
 
 const DEFAULT_OVERLAYS: Overlays = {
   sma20: false,
@@ -58,10 +59,33 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "CRYPTO" | "STOCK">("all");
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
 
   useEffect(() => {
     if (connected) listCoins().then(setCoins).catch(() => setCoins([]));
   }, [connected]);
+
+  const loadAlerts = useCallback(() => {
+    if (!connected) return;
+    listAlerts().then(setAlerts).catch(() => setAlerts([]));
+  }, [connected]);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
+
+  const addAlert = async (condition: "above" | "below", price: number, note: string) => {
+    await createAlert({ symbol, condition, price, note: note || undefined }).catch(() => undefined);
+    loadAlerts();
+  };
+  const removeAlert = async (id: string) => {
+    await deleteAlert(id).catch(() => undefined);
+    loadAlerts();
+  };
+  const rearmAlert = async (id: string) => {
+    await resetAlert(id).catch(() => undefined);
+    loadAlerts();
+  };
 
   const load = useCallback(() => {
     if (!connected) return;
@@ -86,6 +110,19 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
     const lastC = bars[bars.length - 1].close;
     return first > 0 ? ((lastC - first) / first) * 100 : 0;
   }, [bars]);
+
+  // Active alert levels for the charted symbol → dashed lines on the chart.
+  const priceLines = useMemo<PriceLinePro[]>(
+    () =>
+      alerts
+        .filter((a) => a.symbol === symbol && a.status === "ACTIVE")
+        .map((a) => ({
+          price: toNum(a.price),
+          color: a.condition === "above" ? "#10B981" : "#EF4444",
+          title: `alert ${a.condition === "above" ? "≥" : "≤"} ${num(a.price, 2)}`,
+        })),
+    [alerts, symbol],
+  );
 
   const filteredCoins = coins.filter((c) => {
     const matchesText =
@@ -208,6 +245,7 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
             overlays={overlays}
             showVolume={showVolume}
             showRsi={showRsi}
+            priceLines={priceLines}
             onCrosshair={setHover}
           />
         ) : (
@@ -215,6 +253,17 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
             {loading ? "Loading chart…" : "No candles for this coin/timeframe."}
           </div>
         )}
+
+        <div className="mt-4">
+          <AlertsPanel
+            symbol={symbol}
+            suggestedPrice={last ? last.close : 0}
+            alerts={alerts}
+            onAdd={addAlert}
+            onDelete={removeAlert}
+            onReset={rearmAlert}
+          />
+        </div>
       </section>
     </div>
   );

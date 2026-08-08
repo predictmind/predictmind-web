@@ -14,11 +14,13 @@ import type {
   BacktestResult,
   Candle,
   Coin,
+  CreateAlertRequest,
   CreateBotRequest,
   PaperAccount,
   PaperOrder,
   PaperPortfolio,
   PaperTrade,
+  PriceAlert,
   RunBacktestRequest,
   StrategyBot,
   Trade,
@@ -213,4 +215,25 @@ export interface BotTickResult {
 
 export function tickBot(id: string): Promise<BotTickResult> {
   return request<BotTickResult>(`/api/v1/paper/bots/${id}/tick`, { method: "POST" });
+}
+
+// ---- Price alerts ----
+
+export function createAlert(body: CreateAlertRequest): Promise<PriceAlert> {
+  return request<PriceAlert>("/api/v1/market/alerts", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function listAlerts(): Promise<PriceAlert[]> {
+  return request<PriceAlert[]>("/api/v1/market/alerts");
+}
+
+export function deleteAlert(id: string): Promise<{ deleted: boolean }> {
+  return request<{ deleted: boolean }>(`/api/v1/market/alerts/${id}`, { method: "DELETE" });
+}
+
+export function resetAlert(id: string): Promise<PriceAlert> {
+  return request<PriceAlert>(`/api/v1/market/alerts/${id}/reset`, { method: "POST" });
 }
