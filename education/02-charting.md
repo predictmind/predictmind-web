@@ -70,6 +70,32 @@ One important detail: the market service returns candles **newest-first**, but
 ascending and drops any duplicate timestamps before handing them to the chart —
 otherwise the library throws.
 
+## Drawing tools (added later)
+
+Traders mark up charts with **support/resistance lines** and **trendlines**. We added
+a small drawing toolbar (Cursor / Horizontal / Trendline / Clear):
+
+- **Horizontal line** — one click places a line at that price. This uses
+  lightweight-charts' built-in `createPriceLine`, which always stays perfectly
+  horizontal across the whole chart. Easy and exact.
+- **Trendline** — two clicks draw a diagonal line between two points. lightweight-
+  charts (v4) has **no built-in diagonal drawing**, so we draw it ourselves on a
+  transparent **SVG layer on top of the chart**. The trick is coordinates: we store
+  each end as a **(time, price)** pair (not pixels), then on every pan/zoom/resize we
+  convert them back to pixels with `timeScale().timeToCoordinate(time)` and
+  `series.priceToCoordinate(price)` and redraw the line. That way the trendline
+  "sticks" to the same candles as you scroll — just like TradingView.
+- **Pointer-events trick:** when a drawing tool is active the SVG captures clicks;
+  in Cursor mode the SVG ignores clicks (`pointer-events: none`) so normal pan/zoom
+  still works through it.
+- **Persistence:** drawings are saved in the browser (`localStorage`) **per symbol +
+  timeframe**, so your lines are still there when you come back. **Clear** removes
+  them for the current chart.
+
+Why store (time, price) instead of pixels? Pixels change the moment you zoom or the
+window resizes; the (time, price) of a level never changes — so that's the honest
+source of truth, and pixels are recomputed from it.
+
 ## Honest scope (Phase 1)
 
 This is the first slice of a bigger "TradingView-parity" plan. It covers charting,

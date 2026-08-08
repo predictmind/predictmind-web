@@ -9,7 +9,7 @@
  * and updated in place, so zoom/pan is preserved as data/overlays change.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ColorType,
   CrosshairMode,
@@ -53,6 +53,23 @@ export interface PriceLinePro {
   title: string;
 }
 
+export type DrawTool = "cursor" | "hline" | "trend";
+
+export interface HLineDrawing {
+  id: string;
+  type: "hline";
+  price: number;
+}
+export interface TrendDrawing {
+  id: string;
+  type: "trend";
+  t1: number; // UTC seconds
+  p1: number; // price
+  t2: number;
+  p2: number;
+}
+export type Drawing = HLineDrawing | TrendDrawing;
+
 interface Props {
   bars: OhlcvBar[];
   overlays: Overlays;
@@ -60,6 +77,9 @@ interface Props {
   showRsi: boolean;
   markers?: ChartMarkerPro[];
   priceLines?: PriceLinePro[];
+  tool?: DrawTool;
+  drawings?: Drawing[];
+  onAddDrawing?: (d: Drawing) => void;
   height?: number;
   onCrosshair?: (info: CrosshairInfo | null) => void;
 }
@@ -85,6 +105,9 @@ export default function PriceChartPro({
   showRsi,
   markers = [],
   priceLines = [],
+  tool = "cursor",
+  drawings = [],
+  onAddDrawing,
   height = 460,
   onCrosshair,
 }: Props) {
@@ -97,7 +120,33 @@ export default function PriceChartPro({
   const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlaySeries = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const rsiSeries = useRef<ISeriesApi<"Line"> | null>(null);
-  const priceLineRefs = useRef<IPriceLine[]>([]);
+  const priceLineRefs = useRef<IPriceLine[]>([]); // alert lines
+  const drawingLineRefs = useRef<IPriceLine[]>([]); // horizontal drawings
+
+  // Drawing state (trendlines are rendered on an SVG overlay in pixel space).
+  const drawingsRef = useRef<Drawing[]>(drawings);
+  drawingsRef.current = drawings;
+  const [trendSegs, setTrendSegs] = useState<{ id: string; x1: number; y1: number; x2: number; y2: number }[]>([]);
+  const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
+  const pendingPoint = useRef<{ t: number; p: number } | null>(null);
+
+  /** Recompute trendline pixel coordinates from stored (time, price) endpoints. */
+  const recompute = useCallback(() => {
+    const chart = priceChart.current;
+    const series = candleSeries.current;
+    if (!chart || !series) return;
+    const segs: { id: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const d of drawingsRef.current) {
+      if (d.type !== "trend") continue;
+      const x1 = chart.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const x2 = chart.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+      const y1 = series.priceToCoordinate(d.p1);
+      const y2 = series.priceToCoordinate(d.p2);
+      if (x1 == null || x2 == null || y1 == null || y2 == null) continue;
+      segs.push({ id: d.id, x1, y1, x2, y2 });
+    }
+    setTrendSegs(segs);
+  }, []);
 
   // ---- create charts once ----
   useEffect(() => {
@@ -155,6 +204,9 @@ export default function PriceChartPro({
     sync(chart, rchart);
     sync(rchart, chart);
 
+    // Redraw trendline overlay whenever the visible time range moves (pan/zoom).
+    chart.timeScale().subscribeVisibleTimeRangeChange(() => recompute());
+
     // Crosshair OHLC readout (from the price chart).
     if (onCrosshair) {
       chart.subscribeCrosshairMove((param) => {
@@ -175,6 +227,7 @@ export default function PriceChartPro({
     const ro = new ResizeObserver(() => {
       if (priceRef.current) chart.applyOptions({ width: priceRef.current.clientWidth });
       if (rsiRef.current) rchart.applyOptions({ width: rsiRef.current.clientWidth });
+      recompute();
     });
     ro.observe(priceRef.current);
     if (rsiRef.current) ro.observe(rsiRef.current);
@@ -280,9 +333,85 @@ export default function PriceChartPro({
     );
   }, [priceLines]);
 
+  // ---- horizontal DRAWING lines (support/resistance the user drew) ----
+  useEffect(() => {
+    const candle = candleSeries.current;
+    if (!candle) return;
+    for (const line of drawingLineRefs.current) candle.removePriceLine(line);
+    drawingLineRefs.current = drawings
+      .filter((d): d is HLineDrawing => d.type === "hline")
+      .map((d) =>
+        candle.createPriceLine({
+          price: d.price,
+          color: "#3B82F6",
+          lineWidth: 1,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: "line",
+        }),
+      );
+  }, [drawings]);
+
+  // Recompute trendline pixels when the drawings or the data change.
+  useEffect(() => {
+    recompute();
+  }, [drawings, bars, recompute]);
+
+  /** Click on the overlay to place a horizontal line or a trendline point. */
+  const handleOverlayClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const chart = priceChart.current;
+    const series = candleSeries.current;
+    if (!chart || !series || !onAddDrawing || tool === "cursor") return;
+    const rect = (e.target as SVGSVGElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const price = series.coordinateToPrice(y);
+    if (price == null) return;
+
+    if (tool === "hline") {
+      onAddDrawing({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, type: "hline", price });
+      return;
+    }
+    // trendline: needs two clicks
+    const t = chart.timeScale().coordinateToTime(x);
+    if (t == null || typeof t !== "number") return;
+    if (!pendingPoint.current) {
+      pendingPoint.current = { t, p: price };
+      setPending({ x, y });
+    } else {
+      const p1 = pendingPoint.current;
+      onAddDrawing({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type: "trend",
+        t1: p1.t,
+        p1: p1.p,
+        t2: t,
+        p2: price,
+      });
+      pendingPoint.current = null;
+      setPending(null);
+    }
+  };
+
+  const drawingMode = tool !== "cursor";
+
   return (
     <div>
-      <div ref={priceRef} className="w-full" />
+      <div style={{ position: "relative" }}>
+        <div ref={priceRef} className="w-full" />
+        <svg
+          className="absolute left-0 top-0"
+          width="100%"
+          height={height}
+          style={{ pointerEvents: drawingMode ? "auto" : "none", cursor: drawingMode ? "crosshair" : "default" }}
+          onClick={handleOverlayClick}
+        >
+          {trendSegs.map((s) => (
+            <line key={s.id} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#00D4FF" strokeWidth={1.5} />
+          ))}
+          {pending && <circle cx={pending.x} cy={pending.y} r={4} fill="#00D4FF" />}
+        </svg>
+      </div>
       <div ref={rsiRef} className="w-full" style={{ display: showRsi ? "block" : "none" }} />
     </div>
   );

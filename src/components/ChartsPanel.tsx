@@ -13,7 +13,13 @@ import type { OhlcvBar } from "@/lib/indicators";
 import { num, toNum } from "@/lib/format";
 import { TIMEFRAMES, historyPresets } from "@/lib/strategies";
 import AlertsPanel from "./AlertsPanel";
-import PriceChartPro, { type CrosshairInfo, type Overlays, type PriceLinePro } from "./PriceChartPro";
+import PriceChartPro, {
+  type CrosshairInfo,
+  type Drawing,
+  type DrawTool,
+  type Overlays,
+  type PriceLinePro,
+} from "./PriceChartPro";
 
 const DEFAULT_OVERLAYS: Overlays = {
   sma20: false,
@@ -60,6 +66,8 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
   const [filter, setFilter] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "CRYPTO" | "STOCK">("all");
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  const [tool, setTool] = useState<DrawTool>("cursor");
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
 
   useEffect(() => {
     if (connected) listCoins().then(setCoins).catch(() => setCoins([]));
@@ -85,6 +93,37 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
   const rearmAlert = async (id: string) => {
     await resetAlert(id).catch(() => undefined);
     loadAlerts();
+  };
+
+  // Drawings are saved per symbol+timeframe in the browser.
+  const drawingsKey = `pm.drawings.${symbol}.${timeframe}`;
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`pm.drawings.${symbol}.${timeframe}`);
+      setDrawings(raw ? (JSON.parse(raw) as Drawing[]) : []);
+    } catch {
+      setDrawings([]);
+    }
+  }, [symbol, timeframe]);
+
+  const addDrawing = (d: Drawing) => {
+    setDrawings((prev) => {
+      const next = [...prev, d];
+      try {
+        localStorage.setItem(drawingsKey, JSON.stringify(next));
+      } catch {
+        /* ignore quota errors */
+      }
+      return next;
+    });
+  };
+  const clearDrawings = () => {
+    setDrawings([]);
+    try {
+      localStorage.removeItem(drawingsKey);
+    } catch {
+      /* ignore */
+    }
   };
 
   const load = useCallback(() => {
@@ -239,6 +278,32 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
           <button type="button" className={chip(showRsi)} onClick={() => setShowRsi((v) => !v)}>RSI</button>
         </div>
 
+        {/* drawing toolbar */}
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-slate-500">Draw:</span>
+          <button type="button" className={chip(tool === "cursor")} onClick={() => setTool("cursor")} title="Cursor (pan/zoom)">
+            ⤢ Cursor
+          </button>
+          <button type="button" className={chip(tool === "hline")} onClick={() => setTool("hline")} title="Click to place a horizontal line">
+            — Horizontal
+          </button>
+          <button type="button" className={chip(tool === "trend")} onClick={() => setTool("trend")} title="Click two points to draw a trendline">
+            ╱ Trendline
+          </button>
+          {drawings.length > 0 && (
+            <button
+              type="button"
+              onClick={clearDrawings}
+              className="rounded-md bg-elevated px-2.5 py-1 text-xs font-medium text-error hover:bg-border"
+            >
+              Clear ({drawings.length})
+            </button>
+          )}
+          {tool === "trend" && (
+            <span className="text-xs text-slate-500">click two points…</span>
+          )}
+        </div>
+
         {bars.length > 0 ? (
           <PriceChartPro
             bars={bars}
@@ -246,6 +311,9 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
             showVolume={showVolume}
             showRsi={showRsi}
             priceLines={priceLines}
+            tool={tool}
+            drawings={drawings}
+            onAddDrawing={addDrawing}
             onCrosshair={setHover}
           />
         ) : (
