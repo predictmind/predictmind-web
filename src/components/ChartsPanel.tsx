@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createAlert, deleteAlert, getCandles, listAlerts, listCoins, resetAlert } from "@/lib/api";
 import type { Coin, PriceAlert } from "@/lib/types";
 import type { OhlcvBar } from "@/lib/indicators";
-import { num, toNum } from "@/lib/format";
+import { dateLabel, num, toNum } from "@/lib/format";
 import { TIMEFRAMES, historyPresets } from "@/lib/strategies";
 import AlertsPanel from "./AlertsPanel";
 import PriceChartPro, {
@@ -74,6 +74,11 @@ export default function ChartsPanel({
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [tool, setTool] = useState<DrawTool>("cursor");
   const [drawings, setDrawings] = useState<Drawing[]>([]);
+  // Bar-replay practice mode: reveal candles progressively.
+  const [replayMode, setReplayMode] = useState(false);
+  const [replayIdx, setReplayIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [speedMs, setSpeedMs] = useState(600);
 
   useEffect(() => {
     if (connected) listCoins().then(setCoins).catch(() => setCoins([]));
@@ -151,15 +156,59 @@ export default function ChartsPanel({
     load();
   }, [load]);
 
+  // New data (symbol/timeframe/history change) exits replay.
+  useEffect(() => {
+    setReplayMode(false);
+    setPlaying(false);
+  }, [bars]);
+
+  // The bars actually shown: in replay we reveal only up to replayIdx.
+  const displayBars = useMemo(
+    () => (replayMode ? bars.slice(0, Math.min(replayIdx, bars.length)) : bars),
+    [replayMode, replayIdx, bars],
+  );
+
+  // Auto-advance while playing; stop at the end.
+  useEffect(() => {
+    if (!replayMode || !playing) return;
+    const id = setInterval(() => {
+      setReplayIdx((i) => {
+        if (i >= bars.length) return i;
+        return i + 1;
+      });
+    }, speedMs);
+    return () => clearInterval(id);
+  }, [replayMode, playing, speedMs, bars.length]);
+
+  useEffect(() => {
+    if (replayMode && replayIdx >= bars.length) setPlaying(false);
+  }, [replayMode, replayIdx, bars.length]);
+
+  const enterReplay = () => {
+    if (bars.length < 30) return;
+    setReplayMode(true);
+    setPlaying(false);
+    setReplayIdx(Math.max(30, Math.floor(bars.length * 0.6)));
+  };
+  const exitReplay = () => {
+    setReplayMode(false);
+    setPlaying(false);
+  };
+  const stepBy = (n: number) => {
+    setPlaying(false);
+    setReplayIdx((i) => Math.max(2, Math.min(bars.length, i + n)));
+  };
+
   const presets = historyPresets(timeframe);
-  const last = bars.length ? bars[bars.length - 1] : null;
+  const lastFull = bars.length ? bars[bars.length - 1] : null;
+  const last = displayBars.length ? displayBars[displayBars.length - 1] : null;
   const info = hover ?? (last ? { time: last.time, open: last.open, high: last.high, low: last.low, close: last.close } : null);
   const change = useMemo(() => {
-    if (bars.length < 2) return 0;
-    const first = bars[0].close;
-    const lastC = bars[bars.length - 1].close;
+    if (displayBars.length < 2) return 0;
+    const first = displayBars[0].close;
+    const lastC = displayBars[displayBars.length - 1].close;
     return first > 0 ? ((lastC - first) / first) * 100 : 0;
-  }, [bars]);
+  }, [displayBars]);
 
   // Active alert levels for the charted symbol → dashed lines on the chart.
   const priceLines = useMemo<PriceLinePro[]>(
@@ -315,9 +364,55 @@ export default function ChartsPanel({
           )}
         </div>
 
+        {/* bar-replay controls */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {!replayMode ? (
+            <button
+              type="button"
+              onClick={enterReplay}
+              disabled={bars.length < 30}
+              className={chip(false)}
+              title="Practice: step through history bar by bar"
+            >
+              ⏵ Replay
+            </button>
+          ) : (
+            <>
+              <span className="text-xs font-medium text-primary">REPLAY</span>
+              <button type="button" className={chip(false)} onClick={() => stepBy(-1)} title="Step back">⏮ −1</button>
+              <button
+                type="button"
+                className={chip(playing)}
+                onClick={() => setPlaying((p) => !p)}
+                title={playing ? "Pause" : "Play"}
+              >
+                {playing ? "⏸ Pause" : "⏵ Play"}
+              </button>
+              <button type="button" className={chip(false)} onClick={() => stepBy(1)} title="Step forward">+1 ⏭</button>
+              <select
+                className="rounded-md border border-border bg-background px-2 py-1 text-xs text-white focus:border-primary focus:outline-none"
+                value={speedMs}
+                onChange={(e) => setSpeedMs(Number(e.target.value))}
+              >
+                <option value={1200}>0.5x</option>
+                <option value={600}>1x</option>
+                <option value={300}>2x</option>
+                <option value={120}>5x</option>
+              </select>
+              <span className="text-xs text-slate-400">
+                {displayBars.length}/{bars.length}
+                {last ? ` · ${dateLabel(new Date(last.time * 1000).toISOString())}` : ""}
+              </span>
+              <button type="button" onClick={exitReplay} className="rounded-md bg-elevated px-2.5 py-1 text-xs font-medium text-error hover:bg-border">
+                Exit
+              </button>
+            </>
+          )}
+        </div>
+
         {bars.length > 0 ? (
           <PriceChartPro
-            bars={bars}
+            bars={displayBars}
             overlays={overlays}
             showVolume={showVolume}
             showRsi={showRsi}
@@ -336,7 +431,7 @@ export default function ChartsPanel({
         <div className="mt-4">
           <AlertsPanel
             symbol={symbol}
-            suggestedPrice={last ? last.close : 0}
+            suggestedPrice={lastFull ? lastFull.close : 0}
             alerts={alerts}
             onAdd={addAlert}
             onDelete={removeAlert}

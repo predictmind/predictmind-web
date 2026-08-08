@@ -96,6 +96,28 @@ Why store (time, price) instead of pixels? Pixels change the moment you zoom or 
 window resizes; the (time, price) of a level never changes — so that's the honest
 source of truth, and pixels are recomputed from it.
 
+## Bar-replay practice mode (added later)
+
+**Replay** lets you re-live the market bar by bar to practise reading setups without
+seeing the future — like a flight simulator for chart-reading.
+
+How it works (all in `ChartsPanel.tsx`, no backend needed):
+
+- We keep a **`replayIdx`** = how many candles are revealed. The chart is fed
+  `bars.slice(0, replayIdx)` instead of the full history.
+- **Step +1 / −1** move the index; **Play/Pause** auto-advances it on a timer (with a
+  0.5x–5x speed selector); **Exit** shows everything again.
+- Because the chart only receives the revealed slice, the **indicators and overlays
+  recompute on exactly what you can see** — no peeking ahead. RSI, SMAs, Bollinger,
+  etc. are honest to the replay point.
+- We **don't** re-fit the view on each step, so the chart stays put and the next
+  candle simply appears at the right edge — exactly the feel you want.
+- Loading new data (changing symbol/timeframe/history) automatically exits replay.
+
+Why this is the right design: the *only* state we need is "how many bars are
+revealed." Everything else (candles, indicators, drawings) already derives from the
+bars we pass in, so slicing the bars is enough to turn the whole chart into a replay.
+
 ## The Screener tab (added later)
 
 Next to Charts there's a **Screener** tab (`ScreenerPanel.tsx`). It calls the market
