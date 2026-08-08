@@ -96,6 +96,22 @@ Why store (time, price) instead of pixels? Pixels change the moment you zoom or 
 window resizes; the (time, price) of a level never changes — so that's the honest
 source of truth, and pixels are recomputed from it.
 
+## The Screener tab (added later)
+
+Next to Charts there's a **Screener** tab (`ScreenerPanel.tsx`). It calls the market
+service's `/market/screener` once to get a snapshot of *every* symbol (price, change%,
+RSI, vs SMA50/200, trend, distance from the 20-bar high, volume), then lets you:
+
+- filter by **All / Crypto / Stocks** and pick a **timeframe**,
+- apply **presets** (Oversold RSI&lt;30, Overbought, Uptrend, Downtrend, Near 20-bar
+  high) — these are simple client-side filters over the fetched rows,
+- **sort** any column by clicking its header,
+- **click a row** to jump straight to that symbol on the Charts tab (the page lifts
+  the chosen symbol up and switches tabs).
+
+The heavy work (reading candles + computing indicators for all symbols) happens once
+on the server; the filtering/sorting is instant in the browser.
+
 ## Honest scope (Phase 1)
 
 This is the first slice of a bigger "TradingView-parity" plan. It covers charting,

@@ -51,7 +51,13 @@ function toBars(candles: { openTime: string; open: string; high: string; low: st
   return out;
 }
 
-export default function ChartsPanel({ connected }: { connected: boolean }) {
+export default function ChartsPanel({
+  connected,
+  initialSymbol,
+}: {
+  connected: boolean;
+  initialSymbol?: string;
+}) {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [symbol, setSymbol] = useState("SOL");
   const [timeframe, setTimeframe] = useState("1d");
@@ -72,6 +78,11 @@ export default function ChartsPanel({ connected }: { connected: boolean }) {
   useEffect(() => {
     if (connected) listCoins().then(setCoins).catch(() => setCoins([]));
   }, [connected]);
+
+  // Open a symbol chosen from the Screener tab.
+  useEffect(() => {
+    if (initialSymbol) setSymbol(initialSymbol);
+  }, [initialSymbol]);
 
   const loadAlerts = useCallback(() => {
     if (!connected) return;

@@ -188,6 +188,25 @@ export interface StrategyBot {
   createdAt?: string;
 }
 
+/** One screener row: a symbol's current snapshot metrics. */
+export interface ScreenerRow {
+  symbol: string;
+  name: string;
+  assetClass: string;
+  price: number | null;
+  changePct: number | null;
+  rsi: number | null;
+  sma50: number | null;
+  sma200: number | null;
+  aboveSma50: boolean | null;
+  aboveSma200: boolean | null;
+  trendUp: boolean | null;
+  high20: number | null;
+  distFromHigh20Pct: number | null;
+  volume: number | null;
+  candles: number;
+}
+
 /** A server-side price alert. */
 export interface PriceAlert {
   id: string;

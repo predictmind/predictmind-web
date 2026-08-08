@@ -22,6 +22,7 @@ import type {
   PaperTrade,
   PriceAlert,
   RunBacktestRequest,
+  ScreenerRow,
   StrategyBot,
   Trade,
 } from "./types";
@@ -123,6 +124,12 @@ export function listCoins(): Promise<Coin[]> {
 export function getCandles(symbol: string, timeframe: string, limit: number): Promise<Candle[]> {
   const q = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
   return request<Candle[]>(`/api/v1/market/candles?${q.toString()}`);
+}
+
+export function getScreener(assetClass: string | undefined, timeframe: string): Promise<ScreenerRow[]> {
+  const q = new URLSearchParams({ timeframe });
+  if (assetClass) q.set("assetClass", assetClass);
+  return request<ScreenerRow[]>(`/api/v1/market/screener?${q.toString()}`);
 }
 
 // ---- Backtest ----

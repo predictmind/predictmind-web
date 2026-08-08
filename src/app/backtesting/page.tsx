@@ -13,13 +13,15 @@ import BacktestPanel from "@/components/BacktestPanel";
 import ChartsPanel from "@/components/ChartsPanel";
 import ConnectionBar from "@/components/ConnectionBar";
 import PaperPanel from "@/components/PaperPanel";
+import ScreenerPanel from "@/components/ScreenerPanel";
 import { hasToken } from "@/lib/api";
 
-type Tab = "charts" | "backtest" | "paper";
+type Tab = "charts" | "screener" | "backtest" | "paper";
 
 export default function TestingPage() {
   const [tab, setTab] = useState<Tab>("charts");
   const [connected, setConnected] = useState(false);
+  const [chartSymbol, setChartSymbol] = useState("");
 
   useEffect(() => {
     setConnected(hasToken());
@@ -51,6 +53,9 @@ export default function TestingPage() {
         <button type="button" className={tabBtn("charts")} onClick={() => setTab("charts")}>
           Charts
         </button>
+        <button type="button" className={tabBtn("screener")} onClick={() => setTab("screener")}>
+          Screener
+        </button>
         <button type="button" className={tabBtn("backtest")} onClick={() => setTab("backtest")}>
           Backtest (history)
         </button>
@@ -59,7 +64,16 @@ export default function TestingPage() {
         </button>
       </div>
 
-      {tab === "charts" && <ChartsPanel connected={connected} />}
+      {tab === "charts" && <ChartsPanel connected={connected} initialSymbol={chartSymbol} />}
+      {tab === "screener" && (
+        <ScreenerPanel
+          connected={connected}
+          onOpenChart={(s) => {
+            setChartSymbol(s);
+            setTab("charts");
+          }}
+        />
+      )}
       {tab === "backtest" && <BacktestPanel connected={connected} />}
       {tab === "paper" && <PaperPanel connected={connected} />}
     </main>
