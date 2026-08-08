@@ -134,6 +134,31 @@ RSI, vs SMA50/200, trend, distance from the 20-bar high, volume), then lets you:
 The heavy work (reading candles + computing indicators for all symbols) happens once
 on the server; the filtering/sorting is instant in the browser.
 
+## The Info tab (added later)
+
+Traders want *context*, not just price. The **Info** tab (`InfoPanel.tsx`) gathers it
+for a symbol in one place — and importantly, **it invents no new data**: every number
+already exists in our services, so this is purely a view layer.
+
+- **Fear & Greed** — the market-wide mood index (0 = extreme fear, 100 = extreme
+  greed), from the market service's `/market/fng`.
+- **Funding rate / Open interest / Long-Short ratio** — crypto perpetual-futures
+  context (`/market/funding`, `/market/oi`, `/market/lsr`). These are blank for
+  stocks (stocks have no perps), and the cards say so instead of showing a wrong 0.
+- **News sentiment** — a bullish/neutral/bearish bar for the symbol from the news
+  service (`/sentiment/:symbol`).
+- **News feed** — recent headlines mentioning the symbol (`/news/:symbol`), each
+  tagged bull/bear/neutral, linking to the source.
+
+Two design choices worth noting:
+
+- **Best-effort loading:** each card fetches independently, and a failure just shows
+  "—" for that one card rather than blanking the whole panel. Context signals are
+  "nice to have", so one missing feed shouldn't break the page.
+- **Reuse, don't recompute:** we deliberately call the existing endpoints instead of
+  re-deriving sentiment or funding in the browser — one source of truth, and the
+  heavy lifting stays server-side.
+
 ## Honest scope (Phase 1)
 
 This is the first slice of a bigger "TradingView-parity" plan. It covers charting,

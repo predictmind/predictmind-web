@@ -12,11 +12,12 @@ import Link from "next/link";
 import BacktestPanel from "@/components/BacktestPanel";
 import ChartsPanel from "@/components/ChartsPanel";
 import ConnectionBar from "@/components/ConnectionBar";
+import InfoPanel from "@/components/InfoPanel";
 import PaperPanel from "@/components/PaperPanel";
 import ScreenerPanel from "@/components/ScreenerPanel";
 import { hasToken } from "@/lib/api";
 
-type Tab = "charts" | "screener" | "backtest" | "paper";
+type Tab = "charts" | "screener" | "info" | "backtest" | "paper";
 
 export default function TestingPage() {
   const [tab, setTab] = useState<Tab>("charts");
@@ -56,6 +57,9 @@ export default function TestingPage() {
         <button type="button" className={tabBtn("screener")} onClick={() => setTab("screener")}>
           Screener
         </button>
+        <button type="button" className={tabBtn("info")} onClick={() => setTab("info")}>
+          Info
+        </button>
         <button type="button" className={tabBtn("backtest")} onClick={() => setTab("backtest")}>
           Backtest (history)
         </button>
@@ -74,6 +78,7 @@ export default function TestingPage() {
           }}
         />
       )}
+      {tab === "info" && <InfoPanel connected={connected} initialSymbol={chartSymbol} />}
       {tab === "backtest" && <BacktestPanel connected={connected} />}
       {tab === "paper" && <PaperPanel connected={connected} />}
     </main>

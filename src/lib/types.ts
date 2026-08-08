@@ -188,6 +188,42 @@ export interface StrategyBot {
   createdAt?: string;
 }
 
+// ---- Info panels (market context + news) ----
+
+export interface FearGreedPoint {
+  value: number;
+  classification: string;
+  timestamp: string;
+}
+export interface FundingPoint {
+  fundingRate: string | number;
+  fundingTime: string;
+}
+export interface OiPoint {
+  openInterest: string | number;
+  timestamp: string;
+}
+export interface LsrPoint {
+  longShortRatio: string | number;
+  timestamp: string;
+}
+export interface NewsItem {
+  id: string;
+  title: string;
+  url: string;
+  source?: string;
+  publishedAt: string;
+  sentiment?: "POSITIVE" | "NEGATIVE" | "NEUTRAL" | string;
+  impactScore?: number | null;
+  symbols?: string[];
+}
+export interface SentimentAgg {
+  bullish: number;
+  bearish: number;
+  neutral: number;
+  confidence: number;
+}
+
 /** One screener row: a symbol's current snapshot metrics. */
 export interface ScreenerRow {
   symbol: string;

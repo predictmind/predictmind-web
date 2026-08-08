@@ -16,6 +16,11 @@ import type {
   Coin,
   CreateAlertRequest,
   CreateBotRequest,
+  FearGreedPoint,
+  FundingPoint,
+  LsrPoint,
+  NewsItem,
+  OiPoint,
   PaperAccount,
   PaperOrder,
   PaperPortfolio,
@@ -23,6 +28,7 @@ import type {
   PriceAlert,
   RunBacktestRequest,
   ScreenerRow,
+  SentimentAgg,
   StrategyBot,
   Trade,
 } from "./types";
@@ -243,4 +249,33 @@ export function deleteAlert(id: string): Promise<{ deleted: boolean }> {
 
 export function resetAlert(id: string): Promise<PriceAlert> {
   return request<PriceAlert>(`/api/v1/market/alerts/${id}/reset`, { method: "POST" });
+}
+
+// ---- Info panels (market context + news) ----
+
+export function getFearGreed(limit = 1): Promise<FearGreedPoint[]> {
+  return request<FearGreedPoint[]>(`/api/v1/market/fng?limit=${limit}`);
+}
+
+export function getFunding(symbol: string, limit = 1): Promise<FundingPoint[]> {
+  return request<FundingPoint[]>(`/api/v1/market/funding?symbol=${encodeURIComponent(symbol)}&limit=${limit}`);
+}
+
+export function getOpenInterest(symbol: string, timeframe: string, limit = 1): Promise<OiPoint[]> {
+  const q = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
+  return request<OiPoint[]>(`/api/v1/market/oi?${q.toString()}`);
+}
+
+export function getLongShort(symbol: string, timeframe: string, limit = 1): Promise<LsrPoint[]> {
+  const q = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
+  return request<LsrPoint[]>(`/api/v1/market/lsr?${q.toString()}`);
+}
+
+export function getNews(symbol?: string, limit = 30): Promise<NewsItem[]> {
+  if (symbol) return request<NewsItem[]>(`/api/v1/news/${encodeURIComponent(symbol)}`);
+  return request<NewsItem[]>(`/api/v1/news?limit=${limit}`);
+}
+
+export function getSentiment(symbol: string): Promise<SentimentAgg> {
+  return request<SentimentAgg>(`/api/v1/sentiment/${encodeURIComponent(symbol)}`);
 }
