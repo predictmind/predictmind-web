@@ -1,4 +1,4 @@
-# 2. Glossary (the dictionary)
+# 3. Glossary (the dictionary)
 
 Words used in the web app's notes. Trading words (RSI, drawdown, profit factor,
 etc.) are explained in more depth in the **backtest service** education folder; this
@@ -43,5 +43,17 @@ list focuses on the **website** words.
 | **Order (Market/Limit/Stop)** | An instruction to trade now / at a set price / when a price is hit. |
 | **Portfolio** | Your cash + positions, valued at current prices. |
 | **Position** | A coin you currently hold in the account. |
+| **Candlestick** | A bar showing a period's open/high/low/close; green = up, red = down. |
+| **OHLC** | Open, High, Low, Close — the four prices of a candle. |
+| **Volume** | How much traded in a period; shown as bars under the price. |
+| **Overlay** | An indicator line drawn on top of the price (SMA, EMA, Bollinger, VWAP). |
+| **Pane / sub-chart** | A separate strip below the price (e.g. the RSI pane). |
+| **Crosshair** | The cross that follows your mouse and reads off the value under it. |
+| **lightweight-charts** | TradingView's free, plain-JS charting library that we use. |
+| **Watchlist** | A saved list of coins you switch between quickly. |
+| **SMA / EMA** | Simple / Exponential moving average — a smoothed average price line. |
+| **Bollinger Bands** | A moving average with bands 2 std-devs above/below it. |
+| **VWAP** | Volume-Weighted Average Price — the average price weighted by volume. |
+| **Timeframe switcher** | Buttons to change each candle's length (15m…1w). |
 
 Back to the [index](README.md).

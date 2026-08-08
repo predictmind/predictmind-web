@@ -10,14 +10,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BacktestPanel from "@/components/BacktestPanel";
+import ChartsPanel from "@/components/ChartsPanel";
 import ConnectionBar from "@/components/ConnectionBar";
 import PaperPanel from "@/components/PaperPanel";
 import { hasToken } from "@/lib/api";
 
-type Tab = "backtest" | "paper";
+type Tab = "charts" | "backtest" | "paper";
 
 export default function TestingPage() {
-  const [tab, setTab] = useState<Tab>("backtest");
+  const [tab, setTab] = useState<Tab>("charts");
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,9 @@ export default function TestingPage() {
       </div>
 
       <div className="mb-6 inline-flex gap-2 rounded-xl border border-border bg-surface p-1">
+        <button type="button" className={tabBtn("charts")} onClick={() => setTab("charts")}>
+          Charts
+        </button>
         <button type="button" className={tabBtn("backtest")} onClick={() => setTab("backtest")}>
           Backtest (history)
         </button>
@@ -55,11 +59,9 @@ export default function TestingPage() {
         </button>
       </div>
 
-      {tab === "backtest" ? (
-        <BacktestPanel connected={connected} />
-      ) : (
-        <PaperPanel connected={connected} />
-      )}
+      {tab === "charts" && <ChartsPanel connected={connected} />}
+      {tab === "backtest" && <BacktestPanel connected={connected} />}
+      {tab === "paper" && <PaperPanel connected={connected} />}
     </main>
   );
 }

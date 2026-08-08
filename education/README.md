@@ -23,6 +23,7 @@ options** existed.
 | # | File | What you'll learn |
 | --- | --- | --- |
 | 1 | [01-testing-hub.md](01-testing-hub.md) | The Strategy Testing page: pick a coin + strategy, backtest on history, and paper-trade live — how every file fits together |
-| 2 | [02-glossary.md](02-glossary.md) | A dictionary of every web/trading word used here |
+| 2 | [02-charting.md](02-charting.md) | The Charts tab: TradingView-style candlesticks, indicators, RSI pane, and watchlist (using lightweight-charts) |
+| 3 | [03-glossary.md](03-glossary.md) | A dictionary of every web/trading word used here |
 
 Start with [01-testing-hub.md](01-testing-hub.md). 🚀

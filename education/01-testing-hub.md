@@ -155,4 +155,4 @@ backtest and live use the *same* strategy brain. See the paper service's educati
   charting library.
 - Bots are spot-only (buy then sell); they sit in cash when the signal isn't BUY.
 
-Next: the [glossary](02-glossary.md).
+Next: [the Charts workspace](02-charting.md), then the [glossary](03-glossary.md).
